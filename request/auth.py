@@ -1,38 +1,26 @@
-from flask import json
-from flask.ext.mysql import MySQL
-from redis import Redis
-import tornado.web
+from base_request import RequestBase
 import os
 
 def generateUserToken():
 	return os.urandom(20).encode('hex')
 
-class RequestAuth(tornado.web.RequestHandler):
-	def initialize(self, mysql, redis):
-		self.mysql = mysql
-		self.redis = redis
-
-	def get(self):
-		return self.post()
-
-	def post(self):
-		result = []
-		conn = None
-		cursor = None
+class RequestAuth(RequestBase):
+	def processData(self, data):
+		result = { }
+		user_name = ""
 		isRegister = False
+		hasError = False
 
 		try:
-			data = json.loads(self.get_argument('data'))
 			user_name = data['user_name']
 
 		except Exception as e:
-			print e
+			result['result'] = -1
+			result['error_msg'] = str(e)
+			hasError = True
 
-			result.append({'result' : -1})
-			result.append({'error_msg' : str(e)})
-
-			self.write(json.dumps(result))
-			pass
+		if hasError == True:
+			return result
 
 		# Check registration
 		try:
@@ -42,77 +30,92 @@ class RequestAuth(tornado.web.RequestHandler):
 		except Exception as e:
 			isRegister = True
 
-		# Registration
 		if isRegister == True:
-			try:
-				user_token = generateUserToken()
-
-				conn = self.mysql.connect()
-				cursor = conn.cursor()
-
-				queryResult = cursor.execute("insert into user (user_name, user_token, registration_time) values('%s', '%s', now())" % (user_name, user_token))
-				conn.commit()
-				resultData = cursor.fetchone()
-
-				if not (resultData == None and cursor.rowcount >= 1):
-					raise Exception("db error, insert new user")
-
-				queryResult = cursor.execute("select user_id from user where user_name='%s' and user_token='%s'" % (user_name, user_token))
-				resultData = cursor.fetchone()
-
-				if resultData == None or cursor.rowcount == 0:
-					raise Exception("db error, select new user")
-				else:
-					user_id = int(resultData[0])
-
-				result.append({'result' : 0})
-				result.append({'user_id' : user_id})
-				result.append({'user_name' : user_name})
-				result.append({'user_token' : user_token})
-
-			except Exception as e:
-				print e
-
-				result.append({'result' : -1})
-				result.append({'error_msg' : str(e)})
-
-			finally:
-				if cursor is not None:
-					cursor.close()
-				if conn is not None:
-					conn.close()
-
-		# Login Process
+			result = self.processRegistration(user_name)
 		else:
-			try:
-				conn = self.mysql.connect()
-				cursor = conn.cursor()
+			result = self.processLogin(user_id, user_name, user_token)
 
-				queryResult = cursor.execute("select user_id from user where user_name='%s' and user_token='%s'" % (user_name, user_token))
+		return result
 
-				resultData = cursor.fetchone()
-				if resultData == None or cursor.rowcount != 1:
-					raise Exception('db error, select new user')
-				else:
-					result_user_id = int(resultData[0])
+	def processRegistration(self, user_name):
+		result = { }
+		conn = None
+		cursor = None
 
-				if user_id != result_user_id:
-					raise Exception('invalid user')
+		try:
+			if user_name == "":
+				raise Exception("empty user_name")
 
-				result.append({'result' : 0})
-				result.append({'user_id' : user_id})
-				result.append({'user_name' : user_name})
-				result.append({'user_token' : user_token})
+			user_token = generateUserToken()
 
-			except Exception as e:
-				result.append({'result' : -1})
-				result.append({'error_msg' : str(e)})
+			conn = self.mysql.connect()
+			cursor = conn.cursor()
 
-				self.write(json.dumps(result))
-			finally:
-				if cursor is not None:
-					cursor.close()
-				if conn is not None:
-					conn.close()
+			queryResult = cursor.execute("insert into user (user_name, user_token, registration_time) values('%s', '%s', now())" % (user_name, user_token))
+			conn.commit()
+			resultData = cursor.fetchone()
 
-		self.write(json.dumps(result))
+			if not (resultData == None and cursor.rowcount >= 1):
+				raise Exception("db error, insert new user")
+
+			queryResult = cursor.execute("select user_id from user where user_name='%s' and user_token='%s'" % (user_name, user_token))
+			resultData = cursor.fetchone()
+
+			if resultData == None or cursor.rowcount == 0:
+				raise Exception("db error, select new user")
+			else:
+				user_id = int(resultData[0])
+
+			result['result'] = 0
+			result['user_id'] = user_id
+			result['user_name'] = user_name
+			result['user_token'] = user_token
+
+		except Exception as e:
+			result['result'] = -1
+			result['error_msg'] = str(e)
+
+		finally:
+			if cursor is not None:
+				cursor.close()
+			if conn is not None:
+				conn.close()
+
+		return result
+
+	def processLogin(self, user_id, user_name, user_token):
+		result = { }
+		conn = None
+		cursor = None
+
+		try:
+			conn = self.mysql.connect()
+			cursor = conn.cursor()
+
+			queryResult = cursor.execute("select user_id from user where user_name='%s' and user_token='%s'" % (user_name, user_token))
+
+			resultData = cursor.fetchone()
+			if resultData == None or cursor.rowcount != 1:
+				raise Exception('db error, select new user')
+			else:
+				result_user_id = int(resultData[0])
+
+			if user_id != result_user_id:
+				raise Exception('invalid user')
+
+			result['result'] = 0
+			result['user_id'] = user_id
+			result['user_name'] = user_name
+			result['user_token'] = user_token
+
+		except Exception as e:
+			result['result'] = -1
+			result['error_msg'] = str(e)
+
+		finally:
+			if cursor is not None:
+				cursor.close()
+			if conn is not None:
+				conn.close()
+
+		return result

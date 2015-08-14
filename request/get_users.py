@@ -1,35 +1,9 @@
-from flask import json
-from flask.ext.mysql import MySQL
-from redis import Redis
+from base_request import RequestBase
 from datetime import timedelta, datetime
-import tornado.web
-import os
 
-class RequestGetUsers(tornado.web.RequestHandler):
-	def initialize(self, mysql, redis):
-		self.mysql = mysql
-		self.redis = redis
-
-	def get(self):
-		return self.post()
-
-	def post(self):
-		result = []
-		conn = None
-		cursor = None
-
-		try:
-			data = json.loads(self.get_argument('data'))
-
-		except Exception as e:
-			print e
-
-			result.append({'result' : -1})
-			result.append({'error_msg' : str(e)})
-
-			self.write(json.dumps(result))
-			pass
-
+class RequestGetUsers(RequestBase):
+	def processData(self, data):
+		result = { }
 		try:
 			conn = self.mysql.connect()
 			cursor = conn.cursor()
@@ -69,13 +43,13 @@ class RequestGetUsers(tornado.web.RequestHandler):
 				if resultData != None or cursor.rowcount < 1:
 					raise Exception('delete queury error')
 
-			result.append({'result' : 0})
-			result.append({'users' : users})
+			result['result'] = 0
+			result['users'] = users
 
 		except Exception as e:
 			print e
-			result.append({'result' : -1})
-			result.append({'error_msg' : str(e)})
+			result['result'] = -1
+			result['error_msg'] = str(e)
 
 		finally:
 			if cursor is not None:
@@ -83,4 +57,4 @@ class RequestGetUsers(tornado.web.RequestHandler):
 			if conn is not None:
 				conn.close()
 
-		self.write(json.dumps(result))
+		return result 

@@ -1,33 +1,10 @@
-from flask import json
-from flask.ext.mysql import MySQL
-from redis import Redis
-from datetime import timedelta, datetime
-import tornado.web
+from base_request import RequestBase
 
-class RequestUnregisterBeacon(tornado.web.RequestHandler):
-	def initialize(self, mysql, redis):
-		self.mysql = mysql
-		self.redis = redis
-
-	def get(self):
-		return self.post()
-
-	def post(self):
-		result = []
+class RequestUnregisterBeacon(RequestBase):
+	def processData(self, data):
+		result = { }
 		conn = None
 		cursor = None
-
-		try:
-			data = json.loads(self.get_argument('data'))
-
-		except Exception as e:
-			print e
-
-			result.append({'result' : -1})
-			result.append({'error_msg' : str(e)})
-
-			self.write(json.dumps(result))
-			pass
 
 		try:
 			mac_addr = data['mac_addr']
@@ -43,13 +20,13 @@ class RequestUnregisterBeacon(tornado.web.RequestHandler):
 			resultData = cursor.fetchone()
 			
 			if resultData == None and cursor.rowcount == 1:
-				result.append({'result' : 0})
+				result['result'] = 0
 			else:
 				raise Exception("already deleted beacon")
 
 		except Exception as e:
-			result.append({'result' : -1})
-			result.append({'error_msg' : str(e)})
+			result['result'] = -1
+			result['error_msg'] = str(e)
 
 		finally:
 			if not cursor is None:
@@ -57,4 +34,4 @@ class RequestUnregisterBeacon(tornado.web.RequestHandler):
 			if not conn is None:
 				conn.close()
 
-		self.write(json.dumps(result))
+		return result
