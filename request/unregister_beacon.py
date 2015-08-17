@@ -1,37 +1,37 @@
 from base_request import RequestBase
 
+
 class RequestUnregisterBeacon(RequestBase):
-	def processData(self, data):
-		result = { }
-		conn = None
-		cursor = None
+    def process_data(self, data):
+        result = {}
+        conn = None
+        cursor = None
 
-		try:
-			mac_addr = data['mac_addr']
-			advertising_data = data['ad_data']
+        try:
+            mac_addr = data['mac_addr']
+            advertising_data = data['ad_data']
 
-			conn = self.mysql.connect()
-			cursor = conn.cursor()
-			
-			queryResult = cursor.execute("delete from theflash.beacon where mac_addr='%s' and advertising_data='%s'" %
-			 (mac_addr, advertising_data))
-			conn.commit()
+            conn = self.mysql.connect()
+            cursor = conn.cursor()
 
-			resultData = cursor.fetchone()
-			
-			if resultData == None and cursor.rowcount == 1:
-				result['result'] = 0
-			else:
-				raise Exception("already deleted beacon")
+            queryResult = cursor.execute("delete from theflash.beacon where mac_addr='%s' and advertising_data='%s'" % (mac_addr, advertising_data))
+            conn.commit()
 
-		except Exception as e:
-			result['result'] = -1
-			result['error_msg'] = str(e)
+            result_data = cursor.fetchone()
 
-		finally:
-			if not cursor is None:
-				cursor.close()
-			if not conn is None:
-				conn.close()
+            if result_data is None and cursor.rowcount == 1:
+                result['result'] = 0
+            else:
+                raise Exception("Not exist beacon")
 
-		return result
+        except Exception as e:
+            result['result'] = -1
+            result['error_msg'] = str(e)
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
+
+        return result

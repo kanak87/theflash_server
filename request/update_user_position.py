@@ -1,37 +1,39 @@
 from base_request import RequestBase
 
+
 class RequestUpdateUserPosition(RequestBase):
-	def processData(self, data):
-		result = { }
-		conn = None
-		cursor = None
+    def process_data(self, data):
+        result = {}
+        conn = None
+        cursor = None
 
-		try:
-			user_id = data['user_id']
-			x = data['x']
-			y = data['y']
+        try:
+            user_id = data['user_id']
+            beacon_id = data['beacon_id']
+            distance = data['distance']
 
-			conn = self.mysql.connect()
-			cursor = conn.cursor()
+            conn = self.mysql.connect()
+            cursor = conn.cursor()
 
-			queryResult = cursor.execute("replace into position (user_id, x, y, update_timestamp) values('%s', %d, %d, now())" % (user_id, x, y))
-			conn.commit()
+            queryResult = cursor.execute(
+                "replace into position (user_id, beacon_id, distance, update_timestamp) values('%s', %d, %d, now())" % (user_id, beacon_id, distance))
+            conn.commit()
 
-			resultData = cursor.fetchone()
+            result_data = cursor.fetchone()
 
-			if resultData == None and cursor.rowcount >= 1:
-				result['result'] = 0
-			else:
-				raise Exception("db replace error")
+            if result_data is None and cursor.rowcount >= 1:
+                result['result'] = 0
+            else:
+                raise Exception("db replace error")
 
-		except Exception as e:
-			result['result'] = -1
-			result['error_msg'] = str(e)
+        except Exception as e:
+            result['result'] = -1
+            result['error_msg'] = str(e)
 
-		finally:
-			if not cursor is None:
-				cursor.close()
-			if not conn is None:
-				conn.close()
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
-		return result
+        return result

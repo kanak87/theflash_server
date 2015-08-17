@@ -1,42 +1,41 @@
 from flask import json
-from flask.ext.mysql import MySQL
-from redis import Redis
 import tornado.web
-import os
+
 
 class RequestBase(tornado.web.RequestHandler):
-	def initialize(self, mysql, redis):
-		self.mysql = mysql
-		self.redis = redis
 
-	def getRequestJsonData(self):
-		data = None
-		result = { }
+    def data_received(self, chunk):
+        pass
 
-		try:
-			data = json.loads(self.get_argument('data'))
+    def initialize(self, mysql, redis):
+        self.redis = redis
+        self.mysql = mysql
 
-		except Exception as e:
-			print e
+    def get_request_json_data(self):
+        data = None
+        result = {}
 
-			result['result'] = -1
-			result['error_msg'] = str(e)
+        try:
+            data = json.loads(self.get_argument('data'))
 
-			self.write(json.dumps(result))
+        except Exception as e:
+            result['result'] = -1
+            result['error_msg'] = str(e)
 
-		return data
+            self.write(json.dumps(result))
 
-	def processData(self, jsonData):
-		return
+        return data
 
-	def get(self):
-		return self.post()
+    def process_data(self, jsonData):
+        return
 
-	def post(self):
-		jsonData = self.getRequestJsonData()
-		if jsonData == None:
-			return
+    def get(self):
+        return self.post()
 
-		result = self.processData(jsonData)
-		self.write(json.dumps(result))
+    def post(self):
+        json_data = self.get_request_json_data()
+        if json_data is None:
+            return
 
+        result = self.process_data(json_data)
+        self.write(json.dumps(result))
