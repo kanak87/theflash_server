@@ -15,8 +15,7 @@ class RequestUpdateUserPosition(RequestBase):
 
             r = self.get_redis_connection()
 
-            if not insert_user(r, user_id, beacon_id, distance):
-                raise Exception("Redis insert_user Error")
+            insert_user(r, user_id, beacon_id, distance)
 
             result['result'] = 0
 
