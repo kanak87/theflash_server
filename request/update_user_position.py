@@ -1,4 +1,5 @@
 from base_request import RequestBase
+from database.redis_functions import insert_user
 
 
 class RequestUpdateUserPosition(RequestBase):
@@ -12,21 +13,15 @@ class RequestUpdateUserPosition(RequestBase):
             beacon_id = data['beacon_id']
             distance = data['distance']
 
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
+            r = self.get_redis_connection()
 
-            queryResult = cursor.execute(
-                "replace into position (user_id, beacon_id, distance, update_timestamp) values('%s', %d, %d, now())" % (user_id, beacon_id, distance))
-            conn.commit()
+            if not insert_user(r, user_id, beacon_id, distance):
+                raise Exception("Redis insert_user Error")
 
-            result_data = cursor.fetchone()
-
-            if result_data is None and cursor.rowcount >= 1:
-                result['result'] = 0
-            else:
-                raise Exception("db replace error")
+            result['result'] = 0
 
         except Exception as e:
+            print e
             result['result'] = -1
             result['error_msg'] = str(e)
 

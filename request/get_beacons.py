@@ -1,36 +1,26 @@
 from base_request import RequestBase
+from database.redis_functions import get_beacons
+
+beacon_columns = ['beacon_id', 'mac_addr', 'advertising_data', 'x', 'y']
 
 
 class RequestGetBeacons(RequestBase):
     def process_data(self, data):
         result = {}
-        conn = None
-        cursor = None
-
         try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
+            r = self.get_redis_connection()
+            beacon_dict = {}
 
-            cursor.execute('select * from beacon')
-
-            beacons = []
-
-            columns = tuple([d[0] for d in cursor.description])
-
-            for row in cursor:
-                beacons.append(dict(zip(columns, row)))
+            beacons = get_beacons(r)
+            for beacon in beacons:
+                beacon_dict = dict(zip(beacon_columns, beacon))
 
             result['result'] = 0
-            result['beacons'] = beacons
+            result['beacons'] = beacon_dict
 
         except Exception as e:
+            print e
             result['result'] = -1
             result['error_msg'] = str(e)
-
-        finally:
-            if cursor is not None:
-                cursor.close()
-            if conn is not None:
-                conn.close()
 
         return result

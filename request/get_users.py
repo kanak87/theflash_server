@@ -1,59 +1,39 @@
 from base_request import RequestBase
 from datetime import timedelta, datetime
+from database.redis_functions import get_users, remove_users
+
+user_columns = ['user_id', 'beacon_id', 'distance']
+expired_second = 60
 
 
 class RequestGetUsers(RequestBase):
     def process_data(self, data):
         result = {}
         try:
-            conn = self.mysql.connect()
-            cursor = conn.cursor()
-            cursor.execute('select * from position')
+            r = self.get_redis_connection();
 
-            users = []
+            users = get_users(r)
+            alive_users = []
             expired_users = []
 
-            columns = list([d[0] for d in cursor.description])
-            columns.pop()
-
             now_time = datetime.today()
-            expire_time_delta = timedelta(seconds=60)
+            expire_time_delta = timedelta(seconds=expired_second)
 
-            for row in cursor:
-                if now_time > row[3] + expire_time_delta:
-                    expired_users.append(row[0])
+            for user in users:
+                if now_time > user[3] + expire_time_delta:
+                    expired_users.append(user[0])
                 else:
-                    users.append(dict(zip(columns, row)))
+                    alive_users.append(dict(zip(user_columns, user[:3])))
 
             if len(expired_users) > 0:
-                delete_users_query = "delete from position where user_id in ("
-                delete_users_query += "'" + str(expired_users[0]) + "'"
-
-                for expired_user_id in expired_users[1:]:
-                    delete_users_query += ",'" + expired_user_id + "'"
-
-                delete_users_query += ")"
-
-                queryResult = cursor.execute(delete_users_query)
-                conn.commit()
-
-                result_data = cursor.fetchone()
-
-                if result_data is not None or cursor.rowcount < 1:
-                    raise Exception('delete queury error')
+                remove_users(r, expired_users)
 
             result['result'] = 0
-            result['users'] = users
+            result['users'] = alive_users
 
         except Exception as e:
             print e
             result['result'] = -1
             result['error_msg'] = str(e)
-
-        finally:
-            if cursor is not None:
-                cursor.close()
-            if conn is not None:
-                conn.close()
 
         return result

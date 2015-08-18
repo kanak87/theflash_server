@@ -1,11 +1,13 @@
 from base_request import RequestBase
-from request.db_function import get_user_id
-from request.db_function import add_new_user
+from database.db_functions import get_user_id
+from database.db_functions import add_new_user
 
 
 class RequestAuth(RequestBase):
     def process_data(self, data):
         result = {}
+        conn = None
+        cursor = None
 
         try:
             user_name = data['user_name']
@@ -33,5 +35,11 @@ class RequestAuth(RequestBase):
 
             result['result'] = -1
             result['error_msg'] = str(e)
+
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
         return result

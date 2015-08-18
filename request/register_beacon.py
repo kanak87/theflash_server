@@ -1,4 +1,7 @@
 from base_request import RequestBase
+from database.cache_functions import beacon_cache
+from database.db_functions import get_beacon_id
+from database.redis_functions import insert_beacon
 
 
 class RequestRegisterBeacon(RequestBase):
@@ -26,7 +29,13 @@ class RequestRegisterBeacon(RequestBase):
             else:
                 raise Exception("beacon insert error")
 
+            beacon_id = get_beacon_id(mac_addr, advertising_data, cursor, cursor)
+
+            r = self.get_redis_connection()
+            insert_beacon(r, beacon_id, mac_addr, advertising_data, x, y)
+
         except Exception as e:
+            print e
             result['result'] = -1
             result['error_msg'] = str(e)
 

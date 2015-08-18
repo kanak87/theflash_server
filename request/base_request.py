@@ -1,4 +1,5 @@
 from flask import json
+import redis
 import tornado.web
 
 
@@ -7,9 +8,12 @@ class RequestBase(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
-    def initialize(self, mysql, redis):
-        self.redis = redis
+    def initialize(self, mysql, redis_pool):
+        self.redis_pool = redis_pool
         self.mysql = mysql
+
+    def get_redis_connection(self):
+        return redis.Redis(connection_pool=self.redis_pool)
 
     def get_request_json_data(self):
         data = None
@@ -19,6 +23,8 @@ class RequestBase(tornado.web.RequestHandler):
             data = json.loads(self.get_argument('data'))
 
         except Exception as e:
+            print e
+
             result['result'] = -1
             result['error_msg'] = str(e)
 
