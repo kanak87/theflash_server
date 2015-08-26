@@ -18,7 +18,7 @@ def get_users(r):
     result = r.hgetall(redis_position_key)
 
     for user_pair in result.items():
-        values = user_pair[1].split('/')
+        values = user_pair[1].split(';')
         users.append((user_pair[0], int(values[0]), int(values[1]), values[2],
                       datetime.strptime(values[3], "%Y-%m-%d %H:%M:%S.%f")))
 
@@ -26,7 +26,7 @@ def get_users(r):
 
 
 def insert_user(r, user_id, beacon_id, user_name, distance):
-    insert_value = "%d/%d/%s/%s" % (beacon_id, distance, user_name, datetime.now())
+    insert_value = "%d;%d;%s;%s" % (beacon_id, distance, user_name, datetime.now())
     return r.hset(redis_position_key, user_id, insert_value)
 
 
@@ -46,14 +46,14 @@ def get_beacons(r):
     result = r.hgetall(redis_beacon_key)
 
     for beacon_pair in result.items():
-        values = beacon_pair[1].split('/')
+        values = beacon_pair[1].split(';')
         beacons.append((beacon_pair[0], values[0], values[1], int(values[2]), int(values[3])));
 
     return beacons
 
 
 def insert_beacon(r, beacon_id, mac_addr, advertising_data, x, y):
-    insert_value = "%s/%s/%d/%d" % (mac_addr, advertising_data, x, y)
+    insert_value = "%s;%s;%d;%d" % (mac_addr, advertising_data, x, y)
     return r.hset(redis_beacon_key, beacon_id, insert_value)
 
 
@@ -69,7 +69,7 @@ def set_beacons(r, beacons):
 
     beacon_map = {}
     for beacon in beacons:
-        insert_value = "%s/%s/%d/%d" % (beacon['mac_addr'], beacon['advertising_data'], beacon['x'], beacon['y'])
+        insert_value = "%s;%s;%d;%d" % (beacon['mac_addr'], beacon['advertising_data'], beacon['x'], beacon['y'])
         beacon_map[beacon['beacon_id']] = insert_value
 
     return r.hmset(redis_beacon_key, beacon_map)
