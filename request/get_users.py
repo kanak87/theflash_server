@@ -2,7 +2,7 @@ from base_request import RequestBase
 from datetime import timedelta, datetime
 from database.redis_functions import get_users, remove_users
 
-user_columns = ['user_id', 'beacon_id', 'distance']
+user_columns = ['user_id', 'beacon_id', 'distance', 'user_name']
 expired_second = 60
 
 
@@ -20,10 +20,10 @@ class RequestGetUsers(RequestBase):
             expire_time_delta = timedelta(seconds=expired_second)
 
             for user in users:
-                if now_time > user[3] + expire_time_delta:
+                if now_time > user[4] + expire_time_delta:
                     expired_users.append(user[0])
                 else:
-                    alive_users.append(dict(zip(user_columns, user[:3])))
+                    alive_users.append(dict(zip(user_columns, user[:4])))
 
             if len(expired_users) > 0:
                 remove_users(r, expired_users)

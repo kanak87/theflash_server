@@ -9,6 +9,7 @@ import redis
 
 from database.cache_functions import beacon_cache
 from request.auth import RequestAuth
+from request.base_request import RequestPage
 from request.get_users import RequestGetUsers
 from request.get_beacons import RequestGetBeacons
 from request.update_user_position import RequestUpdateUserPosition
@@ -48,9 +49,13 @@ class TheFlashServer:
             (r"/update_user_pos", RequestUpdateUserPosition, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
             (r"/register_beacon", RequestRegisterBeacon, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
             (r"/unregister_beacon", RequestUnregisterBeacon, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
+            (r"/", RequestPage, dict(mysql=self.mysql, redis_pool=self.redis_pool, page_name="index.html")),
+            (r"/manage", RequestPage, dict(mysql=self.mysql, redis_pool=self.redis_pool, page_name="manage.html")),
+            (r"/about", RequestPage, dict(mysql=self.mysql, redis_pool=self.redis_pool, page_name="about.html")),
         ],
             debug=debug,
             autoreload=debug,
+            static_path=settings.static_path
         )
         logging.info('Application Initialized')
 

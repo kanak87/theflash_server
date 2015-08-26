@@ -2,6 +2,15 @@ from datetime import datetime
 
 redis_position_key = 'user_pos'
 redis_beacon_key = 'beacon_list'
+redis_user_name_key = 'user_name'
+
+
+def set_user_name(r, user_id, user_name):
+    return r.hset(redis_user_name_key, user_id, user_name)
+
+
+def get_user_name(r, user_id):
+    return r.hget(redis_user_name_key, user_id)
 
 
 def get_users(r):
@@ -10,14 +19,14 @@ def get_users(r):
 
     for user_pair in result.items():
         values = user_pair[1].split('/')
-        users.append((user_pair[0], int(values[0]), int(values[1]),
-                      datetime.strptime(values[2], "%Y-%m-%d %H:%M:%S.%f")))
+        users.append((user_pair[0], int(values[0]), int(values[1]), values[2],
+                      datetime.strptime(values[3], "%Y-%m-%d %H:%M:%S.%f")))
 
     return users
 
 
-def insert_user(r, user_id, beacon_id, distance):
-    insert_value = "%d/%d/%s" % (beacon_id, distance, datetime.now())
+def insert_user(r, user_id, beacon_id, user_name, distance):
+    insert_value = "%d/%d/%s/%s" % (beacon_id, distance, user_name, datetime.now())
     return r.hset(redis_position_key, user_id, insert_value)
 
 
@@ -54,6 +63,9 @@ def remove_beacon(r, beacon_id):
 
 def set_beacons(r, beacons):
     r.delete(redis_beacon_key)
+
+    if len(beacons) is 0:
+        return 0
 
     beacon_map = {}
     for beacon in beacons:

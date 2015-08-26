@@ -1,5 +1,5 @@
 from base_request import RequestBase
-from database.redis_functions import insert_user
+from database.redis_functions import insert_user, get_user_name
 
 
 class RequestUpdateUserPosition(RequestBase):
@@ -15,7 +15,11 @@ class RequestUpdateUserPosition(RequestBase):
 
             r = self.get_redis_connection()
 
-            insert_user(r, user_id, beacon_id, distance)
+            user_name = get_user_name(r, user_id)
+            if user_name is None:
+                raise Exception('not exists user_id in redis')
+
+            insert_user(r, user_id, beacon_id, user_name, distance)
 
             result['result'] = 0
 

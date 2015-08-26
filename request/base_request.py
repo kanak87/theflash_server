@@ -1,10 +1,13 @@
+import os
+
 from flask import json
 import redis
 import tornado.web
 
+from settings import template_path
+
 
 class RequestBase(tornado.web.RequestHandler):
-
     def data_received(self, chunk):
         pass
 
@@ -45,3 +48,22 @@ class RequestBase(tornado.web.RequestHandler):
 
         result = self.process_data(json_data)
         self.write(json.dumps(result))
+
+
+class RequestPage(tornado.web.RequestHandler):
+    def data_received(self, chunk):
+        pass
+
+    def initialize(self, mysql, redis_pool, page_name):
+        self.redis_pool = redis_pool
+        self.mysql = mysql
+        self.page_path = os.path.join(template_path, page_name)
+
+    def get_redis_connection(self):
+        return redis.Redis(connection_pool=self.redis_pool)
+
+    def get(self):
+        return self.post()
+
+    def post(self):
+        self.render(self.page_path)

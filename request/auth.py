@@ -1,6 +1,7 @@
 from base_request import RequestBase
 from database.db_functions import get_user_id
 from database.db_functions import add_new_user
+from database.redis_functions import set_user_name
 
 
 class RequestAuth(RequestBase):
@@ -26,6 +27,9 @@ class RequestAuth(RequestBase):
             if user_id is None:
                 add_new_user(user_name, social_id, conn, cursor)
                 user_id = get_user_id(user_name, social_id, conn, cursor)
+
+            r = self.get_redis_connection()
+            set_user_name(r, user_id, user_name)
 
             result['result'] = 0
             result['user_id'] = user_id
