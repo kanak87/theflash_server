@@ -1,0 +1,198 @@
+{% extends "../templates/base.html" %}
+
+{% block content %}
+    <div class="row" style="padding-top:20px;position:static">
+        <div class="col-md-9 col-xs-12" style="height:100%">
+            <div id='draw_area' style="position:absolute;float:left;z-index: 2">
+            </div>
+            <img id="map" src="{{ static_url("map.png") }}" class="img-responsive" style=""/>
+        </div>
+        <div class="col-md-3 col-xs-12" style="height:100%">
+            <div>
+                <div id="info">
+                    <div style="padding-top:20px;margin-bottom:40px">
+                        <div class="col-xs-6" style="text-align: center;font-weight: bold">접속 중</div>
+                        <div id="user_count" class="col-xs-6" style="text-align: center;font-weight: bold;"></div>
+                    </div>
+                    <div>
+                        <table id="users_table_header" style="background-color:darkseagreen" class="table">
+                            <tr><th style="text-align: center">ID</th><th style="text-align: center">비콘정보</th><th style="text-align: center">접속자</th></tr>
+                        </table>
+                    </div>
+                    <div class="table-responsive" style="">
+                        <table id="beacon_table" class="table table-hover">
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+{% end %}
+
+{% block js %}
+
+    <script>
+
+        function update_views(){
+            map_element = document.getElementById("map");
+            canvas_size = { x:map_element.offsetWidth, y:map_element.offsetHeight }
+
+            canvas_div = document.getElementById('draw_area');
+            canvas_div.style.width = map_element.offsetWidth+'px';
+            canvas_div.style.height = map_element.offsetHeight+'px';
+
+            var beacon_table = document.getElementById("beacon_table");
+            while(beacon_table.rows.length > 0) {
+                beacon_table.deleteRow(0);
+            }
+
+            canvas_div.innerHTML = ""
+
+            for(beacon_id in beacons)
+            {
+                beacon = beacons[beacon_id];
+
+                row = beacon_table.insertRow(-1);
+                cell = row.insertCell(-1);
+                cell.innerHTML = beacon_id;
+                cell.style.textAlign='center';
+
+                cell = row.insertCell(-1);
+                cell.innerHTML = beacon.mac_addr;
+                cell.style.textAlign='center';
+
+                cell = row.insertCell(-1);
+                var count = 0;
+
+                user_names = [ [], [], [] ]
+
+                for(user_id in users)
+                {
+                    user = users[user_id];
+
+                    if(user.beacon_id != beacon_id)
+                        continue;
+
+                    ++count;
+
+                    user_names[user.distance].push(user.user_name);
+                }
+                cell.innerHTML = count;
+                cell.style.textAlign='center';
+
+                for(var i = 0; i < 3; ++i) {
+                    if (user_names[i].length > 0)
+                    {
+                        zone_node = create_zone_div(i, beacon.x, beacon.y, canvas_size.x / basis_size.x, canvas_size.y / basis_size.y);
+                        zone_text_node = create_zone_text_div(i, user_names[i], beacon.x, beacon.y, canvas_size.x / basis_size.x, canvas_size.y / basis_size.y);
+                        zone_beacon_node = create_zone_beacon_div(i, beacon_id, beacon.x, beacon.y, canvas_size.x / basis_size.x, canvas_size.y / basis_size.y);
+                        canvas_div.appendChild(zone_node);
+                        canvas_div.appendChild(zone_text_node);
+                        canvas_div.appendChild(zone_beacon_node);
+                    }
+                }
+
+                for(beacon_id in beacons)
+                {
+                    beacon = beacons[beacon_id];
+
+                    zone_beacon_node = create_zone_beacon_div(0, beacon_id, beacon.x, beacon.y, canvas_size.x / basis_size.x, canvas_size.y / basis_size.y);
+                    canvas_div.appendChild(zone_beacon_node);
+                }
+            }
+
+            var user_count_div = document.getElementById("user_count");
+            user_count_div.innerHTML = Object.keys(users).length + ' 명';
+        }
+
+        function request_get_beacons(){
+            $.ajax({
+                type:'POST',
+                url:'/get_beacons',
+                dataType:'json',
+                data: {
+                    'data': '{ }',
+                },
+                success : function(json_data) {
+
+                    if(json_data['result'] != 0)
+                    {
+                        alert('Error : ' + json_data['error_msg']);
+                        return;
+                    }
+                    else
+                    {
+                        beacons = { }
+                        users = { }
+
+                        for(beacon of json_data.beacons)
+                        {
+                            new_beacon = { };
+                            new_beacon.id = 'b'+beacon.beacon_id;
+                            new_beacon.mac_addr = beacon.mac_addr;
+                            new_beacon.x = beacon.x;
+                            new_beacon.y = beacon.y;
+                            beacons[beacon.beacon_id] = new_beacon;
+                        }
+                    }
+
+                    update_views();
+                    request_get_users();
+
+
+                    window.setInterval(function(){
+                        request_get_users();
+                        }, 500);
+                },
+
+                error:function(){
+                    console.log('request error');
+                    request_get_beacons();
+                }
+            });
+        }
+
+        function request_get_users(){
+            $.ajax({
+                type: 'POST',
+                url: '/get_users',
+                dataType : 'json',
+                data: {
+                    'data': '{ }',
+                },
+                success: function(json_data){
+
+                    if(json_data['result'] != 0)
+                    {
+                        alert('Error : ' + json_data['error_msg']);
+                        return;
+                    }
+                    else
+                    {
+                        users = { }
+
+                        for(user of json_data.users)
+                        {
+                            users[user.user_id] = { name : user.user_name, beacon_id : user.beacon_id, distance : user.distance };
+                        }
+                    }
+
+                    update_views();
+                },
+
+                error:function(){
+                    console.log('request error');
+                }
+            });
+        }
+
+        $(document).ready(function(){
+            $('#navbar > ul > li:nth-child(2)').addClass("active");
+
+            request_get_beacons();
+        });
+    </script>
+
+{% end %}
