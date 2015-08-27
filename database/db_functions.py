@@ -1,3 +1,15 @@
+def get_users(conn, cursor):
+    users = []
+
+    cursor.execute('select * from user')
+    columns = tuple([d[0] for d in cursor.description])
+
+    for row in cursor:
+        users.append(dict(zip(columns, row)))
+
+    return users
+
+
 def add_new_user(user_name, social_id, conn, cursor):
     result = False
 

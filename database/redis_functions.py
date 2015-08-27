@@ -5,6 +5,19 @@ redis_beacon_key = 'beacon_list'
 redis_user_name_key = 'user_name'
 
 
+def set_user_names(r, users):
+    r.delete(redis_user_name_key)
+
+    if len(users) is 0:
+        return 0
+
+    user_id_name_map = {}
+    for user in users:
+        user_id_name_map[user['user_id']] = user['user_name']
+
+    return r.hmset(redis_user_name_key, user_id_name_map)
+
+
 def set_user_name(r, user_id, user_name):
     return r.hset(redis_user_name_key, user_id, user_name)
 

@@ -6,7 +6,7 @@ import tornado.web
 import redis
 from mysql.connector.pooling import MySQLConnectionPool
 
-from database.cache_functions import beacon_cache
+from database.cache_functions import beacon_cache, user_cache
 from request.auth import RequestAuth
 from request.base_request import RequestPage
 from request.get_users import RequestGetUsers
@@ -64,10 +64,11 @@ class TheFlashServer:
         cursor = None
 
         try:
-            conn = self.mysql_pool.get_connection();
+            conn = self.mysql_pool.get_connection()
             cursor = conn.cursor()
 
             beacon_cache(conn, cursor, self.redis_pool)
+            user_cache(conn, cursor, self.redis_pool)
 
         except Exception as e:
             logging.error(str(e))

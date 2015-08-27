@@ -70,9 +70,10 @@ function create_zone_beacon_div(zone_index, baecon_id, x, y, scaleX, scaleY){
     new_beacon_div.style.zIndex = 5;
     new_beacon_div.style.borderRadius ='50%';
     new_beacon_div.style.textAlign = 'center';
+    new_beacon_div.style.verticalAlign = 'middle';
     new_beacon_div.style.background = 'blue';
 
-    new_beacon_div.innerHTML = 'Beacon ' + baecon_id;
+    new_beacon_div.innerHTML = 'B ' + baecon_id;
     new_beacon_div.style.fontWeight = 'blue';
     new_beacon_div.style.color =  'white';
     new_beacon_div.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
@@ -82,7 +83,7 @@ function create_zone_beacon_div(zone_index, baecon_id, x, y, scaleX, scaleY){
 
 function create_user_div(zone_index, user_name, order, x, y, scaleX, scaleY){
 
-    var user_radius = 10;
+    var user_radius = 200;
     var zone_distance = zone_radius[zone_index];
 
     draw_x = x - Math.cos(3.14 * 2 * (order / 20)) * zone_distance;
@@ -97,7 +98,6 @@ function create_user_div(zone_index, user_name, order, x, y, scaleX, scaleY){
     new_beacon_div.style.height = ((user_radius * 2) * scaleY) + 'px';
 
     new_beacon_div.style.zIndex = 6
-    new_beacon_div.style.borderRadius ='50%';
 
     new_beacon_div.innerHTML = '['+user_name+']';
     new_beacon_div.style.color =  'black';
