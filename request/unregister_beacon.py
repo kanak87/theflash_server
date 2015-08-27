@@ -60,7 +60,7 @@ class RequestUnregisterBeacon(RequestBase):
             mac_addr = data['mac_addr']
             advertising_data = data['ad_data']
 
-            conn = self.mysql.connect()
+            conn = self.get_mysql_connection()
             cursor = conn.cursor()
 
             beacon_id = get_beacon_id(mac_addr, advertising_data, conn, cursor, False)

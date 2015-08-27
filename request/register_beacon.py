@@ -16,7 +16,7 @@ class RequestRegisterBeacon(RequestBase):
             x = data['x']
             y = data['y']
 
-            conn = self.mysql.connect()
+            conn = self.get_mysql_connection()
             cursor = conn.cursor()
 
             queryResult = cursor.execute("insert into theflash.beacon (mac_addr, advertising_data, x, y) values('%s', '%s', %s, %s)" % (mac_addr, advertising_data, x, y))

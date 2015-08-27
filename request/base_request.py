@@ -11,9 +11,12 @@ class RequestBase(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
-    def initialize(self, mysql, redis_pool):
+    def initialize(self, mysql_pool, redis_pool):
         self.redis_pool = redis_pool
-        self.mysql = mysql
+        self.mysql_pool = mysql_pool
+
+    def get_mysql_connection(self):
+        return self.mysql_pool.get_connection()
 
     def get_redis_connection(self):
         return redis.Redis(connection_pool=self.redis_pool)
@@ -54,10 +57,13 @@ class RequestPage(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
-    def initialize(self, mysql, redis_pool, page_name):
+    def initialize(self, mysql_pool, redis_pool, page_name):
         self.redis_pool = redis_pool
-        self.mysql = mysql
+        self.mysql_pool = mysql_pool
         self.page_path = os.path.join(template_path, page_name)
+
+    def get_mysql_connection(self):
+        return self.mysql_pool.get_connection()
 
     def get_redis_connection(self):
         return redis.Redis(connection_pool=self.redis_pool)

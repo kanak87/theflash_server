@@ -19,7 +19,7 @@ class RequestAuth(RequestBase):
             if social_id == "":
                 raise Exception("empty social_id")
 
-            conn = self.mysql.connect()
+            conn = conn = self.get_mysql_connection()
             cursor = conn.cursor()
 
             user_id = get_user_id(user_name, social_id, conn, cursor, False)

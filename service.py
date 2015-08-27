@@ -1,11 +1,10 @@
 import logging
-
 from flask import Flask
-from flask.ext.mysql import MySQL
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 import tornado.web
 import redis
+from mysql.connector.pooling import MySQLConnectionPool
 
 from database.cache_functions import beacon_cache
 from request.auth import RequestAuth
@@ -30,28 +29,27 @@ class TheFlashServer:
         self.app = Flask(__name__)
         logging.info('Flask Initialized')
 
-        self.mysql = MySQL()
-
-        self.app.config['MYSQL_DATABASE_USER'] = settings.db_user_name
-        self.app.config['MYSQL_DATABASE_PASSWORD'] = settings.db_password
-        self.app.config['MYSQL_DATABASE_DB'] = settings.db_name
-        self.app.config['MYSQL_DATABASE_HOST'] = settings.db_host
-        self.mysql.init_app(self.app)
+        dbconfig = { "user" : settings.db_user_name,
+                     "password" : settings.db_password,
+                     "database" : settings.db_name,
+                     "host" : settings.db_host
+                     }
+        self.mysql_pool = MySQLConnectionPool(pool_name=None, pool_size=4, pool_reset_session=True, **dbconfig)
         logging.info('Database Initialized')
 
         self.redis_pool = redis.ConnectionPool(host=settings.redis_host, port=settings.redis_port, db=0)
         logging.info('Redis Initialized')
 
         self.application = tornado.web.Application([
-            (r"/auth", RequestAuth, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
-            (r"/get_users", RequestGetUsers, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
-            (r"/get_beacons", RequestGetBeacons, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
-            (r"/update_user_pos", RequestUpdateUserPosition, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
-            (r"/register_beacon", RequestRegisterBeacon, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
-            (r"/unregister_beacon", RequestUnregisterBeacon, dict(mysql=self.mysql, redis_pool=self.redis_pool)),
-            (r"/", RequestPage, dict(mysql=self.mysql, redis_pool=self.redis_pool, page_name="index.html")),
-            (r"/manage", RequestPage, dict(mysql=self.mysql, redis_pool=self.redis_pool, page_name="manage.html")),
-            (r"/about", RequestPage, dict(mysql=self.mysql, redis_pool=self.redis_pool, page_name="about.html")),
+            (r"/auth", RequestAuth, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool)),
+            (r"/get_users", RequestGetUsers, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool)),
+            (r"/get_beacons", RequestGetBeacons, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool)),
+            (r"/update_user_pos", RequestUpdateUserPosition, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool)),
+            (r"/register_beacon", RequestRegisterBeacon, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool)),
+            (r"/unregister_beacon", RequestUnregisterBeacon, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool)),
+            (r"/", RequestPage, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool, page_name="index.html")),
+            (r"/manage", RequestPage, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool, page_name="manage.html")),
+            (r"/about", RequestPage, dict(mysql_pool=self.mysql_pool, redis_pool=self.redis_pool, page_name="about.html")),
         ],
             debug=debug,
             autoreload=debug,
@@ -66,7 +64,7 @@ class TheFlashServer:
         cursor = None
 
         try:
-            conn = self.mysql.connect()
+            conn = self.mysql_pool.get_connection();
             cursor = conn.cursor()
 
             beacon_cache(conn, cursor, self.redis_pool)
